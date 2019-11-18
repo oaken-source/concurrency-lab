@@ -3,7 +3,7 @@
 #include <pthread.h>
 
 #define THREADS 2
-#define SUM_TO 10000000LLU
+#define SUM_TO 1000000LLU
 
 // to eliminate parallelism, start with
 //   $> taskset 1 ./program
@@ -83,6 +83,160 @@ sum_flags (void *args)
 }
 
 void*
+sum_peterson (void *args)
+{
+  int id = *((int*)args);
+
+  static volatile int flags[2] = { 0 };
+  static volatile int turn = 0;
+
+  unsigned long i;
+  for (i = id; i <= SUM_TO; i += 2)
+    {
+      /* enter critical section *********************************************/
+      flags[id] = 1; turn = id ^ 1;
+      while ((flags[id ^ 1] == 1) && turn == (id ^ 1));
+      /**********************************************************************/
+
+      res += i;
+
+      /* leave critical section *********************************************/
+      flags[id] = 0;
+      /**********************************************************************/
+    }
+
+  return NULL;
+}
+
+void*
+sum_dekker (void *args)
+{
+  int id = *((int*)args);
+
+  static volatile int flags[2] = { 0 };
+  static volatile int turn = 0;
+
+  unsigned long i;
+  for (i = id; i <= SUM_TO; i += 2)
+    {
+      /* enter critical section *********************************************/
+      flags[id] = 1;
+      while (flags[id ^ 1] == 1)
+        if (turn == (id ^ 1))
+          {
+            flags[id] = 0;
+            while (turn == (id ^ 1));
+            flags[id] = 1;
+          }
+      /**********************************************************************/
+
+      res += i;
+
+      /* leave critical section *********************************************/
+      turn = id ^ 1;
+      flags[id] = 0;
+      /**********************************************************************/
+    }
+
+  return NULL;
+}
+
+static int
+max (volatile long long int *v, size_t n)
+{
+  size_t i;
+  int res = 0;
+  for (i = 0; i < n; ++i)
+    if (v[i] > res)
+      res = v[i];
+  return res;
+}
+
+void*
+sum_bakery (void *args)
+{
+  int id = *((int*)args);
+
+  static volatile int choosing[THREADS] = { 0 };
+  static volatile long long int num[THREADS] = { 0 };
+
+  unsigned long i;
+  for (i = id; i <= SUM_TO; i += THREADS)
+    {
+      /* enter critical section *********************************************/
+      choosing[id] = 1;
+      num[id] = max(num, THREADS) + 1;
+      choosing[id] = 0;
+      int j;
+      for (j = 0; j < THREADS; ++j)
+        {
+          while (choosing[j] == 1);
+          while ((num[j] != 0) && (num[j] < num[id] || (num[j] == num[id] && j < id)));
+        }
+      /**********************************************************************/
+
+      res += i;
+
+      /* leave critical section *********************************************/
+      num[id] = 0;
+      /**********************************************************************/
+    }
+
+  return NULL;
+}
+
+void*
+sum_test_and_set (void *args)
+{
+  int id = *((int*)args);
+
+  static int lock = 0;
+
+  unsigned long i;
+  for (i = id; i <= SUM_TO; i += THREADS)
+    {
+      /* enter critical section *********************************************/
+      while (__sync_lock_test_and_set(&lock, 1)) {
+        while (lock);
+      }
+      /**********************************************************************/
+
+      res += i;
+
+      /* leave critical section *********************************************/
+      __sync_lock_release(&lock);
+      /**********************************************************************/
+    }
+
+  return NULL;
+}
+
+void*
+sum_semaphore (void *args)
+{
+  int id = *((int*)args);
+
+  static pthread_mutex_t semaphore = PTHREAD_MUTEX_INITIALIZER;
+
+  unsigned long i;
+  for (i = id; i <= SUM_TO; i += THREADS)
+    {
+      /* enter critical section *********************************************/
+      pthread_mutex_lock(&semaphore);
+      /**********************************************************************/
+
+      res += i;
+
+      /* leave critical section *********************************************/
+      pthread_mutex_unlock(&semaphore);
+      /**********************************************************************/
+    }
+
+  return NULL;
+
+}
+
+void*
 sum_custom (void *args)
 {
   int id = *((int*)args);
@@ -122,6 +276,21 @@ static const struct guard_type_t guards[] = {
 #endif
 #if defined(HAVE_FLAGS)
   { sum_flags, "raise flags", 2 },
+#endif
+#if defined(HAVE_PETERSON)
+  { sum_peterson, "Peterson's Algorithm", 2 },
+#endif
+#if defined(HAVE_DEKKER)
+  { sum_dekker, "Dekker's Algorithm", 2 },
+#endif
+#if defined(HAVE_BAKERY)
+  { sum_bakery, "Bakery Algorithm (Lamport)", 0 },
+#endif
+#if defined(HAVE_TEST_AND_SET)
+  { sum_test_and_set, "test&set", 0 },
+#endif
+#if defined(HAVE_SEMAPHORE)
+  { sum_semaphore, "semaphore", 0 },
 #endif
 #if defined(HAVE_CUSTOM)
   { sum_custom, "custom", 2 },

@@ -2,4 +2,9 @@
 unguarded
 turns
 flags
+peterson
+dekker
+bakery
+test_and_set
+semaphore
 custom
