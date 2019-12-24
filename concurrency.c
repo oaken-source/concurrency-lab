@@ -95,6 +95,7 @@ sum_peterson (void *args)
     {
       /* enter critical section *********************************************/
       flags[id] = 1; turn = id ^ 1;
+      // __sync_synchronize();
       while ((flags[id ^ 1] == 1) && turn == (id ^ 1));
       /**********************************************************************/
 
