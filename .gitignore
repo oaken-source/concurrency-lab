@@ -7,4 +7,7 @@ bakery
 test_and_set
 semaphore
 custom
-*.dSYM
+
+*.o
+*.obj
+*.exe

@@ -1,6 +1,7 @@
 
 #include <stdio.h>
-#include <pthread.h>
+
+#include "thread_helper.h"
 
 #define THREADS 2
 #define SUM_TO 1000000LLU
@@ -11,7 +12,7 @@
 
 static volatile unsigned long long res = 0;
 
-void*
+thread_helper_return_t
 sum_unguarded (void *args)
 {
   int id = *((int*)args);
@@ -30,10 +31,10 @@ sum_unguarded (void *args)
       /**********************************************************************/
     }
 
-  return NULL;
+  return thread_helper_empty_result;
 }
 
-void*
+thread_helper_return_t
 sum_turns (void *args)
 {
   int id = *((int*)args);
@@ -54,10 +55,10 @@ sum_turns (void *args)
       /**********************************************************************/
     }
 
-  return NULL;
+  return thread_helper_empty_result;
 }
 
-void*
+thread_helper_return_t
 sum_flags (void *args)
 {
   int id = *((int*)args);
@@ -79,10 +80,10 @@ sum_flags (void *args)
       /**********************************************************************/
     }
 
-  return NULL;
+  return thread_helper_empty_result;
 }
 
-void*
+thread_helper_return_t
 sum_peterson (void *args)
 {
   int id = *((int*)args);
@@ -106,10 +107,10 @@ sum_peterson (void *args)
       /**********************************************************************/
     }
 
-  return NULL;
+  return thread_helper_empty_result;
 }
 
-void*
+thread_helper_return_t
 sum_dekker (void *args)
 {
   int id = *((int*)args);
@@ -139,7 +140,7 @@ sum_dekker (void *args)
       /**********************************************************************/
     }
 
-  return NULL;
+  return thread_helper_empty_result;
 }
 
 static int
@@ -153,7 +154,7 @@ max (volatile long long int *v, size_t n)
   return res;
 }
 
-void*
+thread_helper_return_t
 sum_bakery (void *args)
 {
   int id = *((int*)args);
@@ -183,10 +184,10 @@ sum_bakery (void *args)
       /**********************************************************************/
     }
 
-  return NULL;
+  return thread_helper_empty_result;
 }
 
-void*
+thread_helper_return_t
 sum_test_and_set (void *args)
 {
   int id = *((int*)args);
@@ -209,10 +210,10 @@ sum_test_and_set (void *args)
       /**********************************************************************/
     }
 
-  return NULL;
+  return thread_helper_empty_result;
 }
 
-void*
+thread_helper_return_t
 sum_semaphore (void *args)
 {
   int id = *((int*)args);
@@ -233,11 +234,11 @@ sum_semaphore (void *args)
       /**********************************************************************/
     }
 
-  return NULL;
+  return thread_helper_empty_result;
 
 }
 
-void*
+thread_helper_return_t
 sum_custom (void *args)
 {
   int id = *((int*)args);
@@ -256,14 +257,14 @@ sum_custom (void *args)
       /**********************************************************************/
     }
 
-  return NULL;
+  return thread_helper_empty_result;
 }
 
-typedef void*(*pthread_func_t)(void*);
+typedef thread_helper_return_t(*thread_func_t)(void*);
 
 struct guard_type_t
 {
-  pthread_func_t func;
+  thread_func_t func;
   const char *name;
   size_t max_threads;
 };
@@ -302,7 +303,7 @@ static const struct guard_type_t guards[] = {
 int
 main (void)
 {
-  pthread_t threads[THREADS] = { 0 };
+  thread_helper_t threads[THREADS] = { 0 };
   int args[THREADS] = { 0 };
 
   const struct guard_type_t *guard = guards;
@@ -317,17 +318,17 @@ main (void)
       for (i = 0; i < nthreads; ++i)
         {
           args[i] = i;
-          if (pthread_create(threads + i, NULL, guard->func, args + i) != 0)
+          if (thread_helper_create(threads + i, guard->func, args + i) != 0)
             {
-              perror("pthread_create");
+              perror("thread_helper_create");
               return 1;
             }
         }
 
       for (i = 0; i < nthreads; ++i)
-        if (pthread_join(threads[i], NULL) != 0)
+        if (thread_helper_join(threads[i]) != 0)
           {
-            perror("pthread_join");
+            perror("thread_helper_join");
             return 1;
           }
 
