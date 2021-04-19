@@ -144,7 +144,7 @@ sum_dekker (void *args)
 }
 
 static int
-max (volatile long long int *v, size_t n)
+bakery_max (volatile long long int *v, size_t n)
 {
   size_t i;
   int res = 0;
@@ -167,7 +167,7 @@ sum_bakery (void *args)
     {
       /* enter critical section *********************************************/
       choosing[id] = 1;
-      num[id] = max(num, THREADS) + 1;
+      num[id] = bakery_max(num, THREADS) + 1;
       choosing[id] = 0;
       int j;
       for (j = 0; j < THREADS; ++j)
@@ -198,7 +198,7 @@ sum_test_and_set (void *args)
   for (i = id; i <= SUM_TO; i += THREADS)
     {
       /* enter critical section *********************************************/
-      while (__sync_lock_test_and_set(&lock, 1)) {
+      while (thread_helper_test_and_set_lock(&lock)) {
         while (lock);
       }
       /**********************************************************************/
@@ -206,31 +206,31 @@ sum_test_and_set (void *args)
       res += i;
 
       /* leave critical section *********************************************/
-      __sync_lock_release(&lock);
+      thread_helper_test_and_set_unlock(&lock);
       /**********************************************************************/
     }
 
   return thread_helper_empty_result;
 }
 
+thread_helper_mutex_t semaphore;
+
 thread_helper_return_t
 sum_semaphore (void *args)
 {
   int id = *((int*)args);
 
-  static pthread_mutex_t semaphore = PTHREAD_MUTEX_INITIALIZER;
-
   unsigned long i;
   for (i = id; i <= SUM_TO; i += THREADS)
     {
       /* enter critical section *********************************************/
-      pthread_mutex_lock(&semaphore);
+      thread_helper_mutex_lock(&semaphore);
       /**********************************************************************/
 
       res += i;
 
       /* leave critical section *********************************************/
-      pthread_mutex_unlock(&semaphore);
+      thread_helper_mutex_unlock(&semaphore);
       /**********************************************************************/
     }
 
@@ -306,6 +306,8 @@ main (void)
   thread_helper_t threads[THREADS] = { 0 };
   int args[THREADS] = { 0 };
 
+  thread_helper_mutex_init(&semaphore);
+  
   const struct guard_type_t *guard = guards;
   while (guard->func != NULL)
     {
