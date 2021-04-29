@@ -5,22 +5,87 @@
   | |__| (_) | | | | (__| |_| | |  | | |  __/ | | | (__| |_| | |__| (_| | |_) |
    \____\___/|_| |_|\___|\__,_|_|  |_|  \___|_| |_|\___|\__, |_____\__,_|_.__/
                                                         |___/
-    Programmbeispiel            "Concurrency Showcase Lab"
 
+Description
+-----------
 
-Beschreibung
-------------
+This exercise demonstrates a number of different approaches implemented purely
+in software, through direct use of hardware primitives, and through use of
+operating systems api, to prevent the data corruption issues inherent to the
+critical section problem.
 
-Dieser Programmrahmen demonstriert Ihnen die Funktionalität verschiedener
-Synchronisationsmechanismen und deren Verwendung in der Programmiersprache C.
+To demonstrate the behaviour, a number of threads are created that calculate a
+parallel sum using a shared variable, each syncronized by a different type of
+guard.
 
-Es sind enthalten:
-  1.) die naiven in der Vorlesung vorgestellten Ansätze "turns" und "flags"
-  2.) die historischen Softwarebasierten Lösungen "Petterson's Algorithmus",
-      "Dekker's Algorithmus" und der "Bakery Algorithmus"
-  3.) ein Spinlock implementiert mit den test_and_set Instruktion
-  4.) ein Ansatz mit POSIX Thread Semaphoren (pthread_mutex_t)
+The implemented guard types include:
 
-Lesen und verstehen Sie den Programmrahmen und sein Laufzeitverhalten.
-Vergleichen Sie die Ansätze untereinander und identifizieren Sie Probleme, die
-die einzelnen Ansätze aufweisen, bzw. zu lösen versuchen.
+ - unguarded: access the shared resource without any protection
+ - turns: access the shared resource in turns
+ - flags: signal access to the shared resource by raising a flag
+ - peterson: syncronize the threads using the well known Peterson's Algorithm
+ - dekker: syncronize the threads using the well known Dekker's Algorithm
+ - bakery: syncronize the threads using the well known Bakery Algorithm
+ - test_and_set: use hardware primitives to syncronize the access
+ - semaphore: use operating systems api to syncronize the access
+ - custom: blank space for your own implementation
+
+Exercise Questions
+------------------
+
+Observe the behaviour of the various types of guards used to syncronize access
+to the critical section. Which ones work, and which ones have issues either in
+correctness or performance or both?
+
+Observe the difference in behaviour if the threads are run either in parallel
+on multiple CPUs or concurrently, but not in parallel, by limiting the program
+execution to a single CPU. On linux, this is possible by using the `taskset`
+utility. Other Operating Systems provide different means to achieve the same
+effect.
+
+Observe the behaviour of the program for different numbers of iterations by
+changing the value of the SUM_TO preprocessor definition in concurrency.c.
+
+Content
+-------
+
+This repository contains the following source code files:
+
+concurrency.c
+~~~~~~~~~~~~~
+
+This file contains the thread functions used by the various guard types, each
+implementing another type of protection of the critical section. It also
+contains the main function with code to create and join the individual threads
+using the functions defined in thread_helper.h.
+
+thread_helper.h
+~~~~~~~~~~~~~~~
+
+This file contains definitions for a small, portable (POSIX and Windows)
+threading interface, to avoid cluttering the code in concurrency.c with
+preprocessor definitions to distinguish between operating systems thread
+programming interfaces.
+
+Additionally, a small, portable interface to Thread Mutexes for Windows and
+POSIX is provided, as well as access to compiler intrinsics for test_and_set
+for the GNU C compiler gcc and the Windows C compiler cl.exe.
+
+Threads and Mutexes are very operating system specific, so each system presents
+its own programming interface. POSIX threads are supported on a number of
+UNIX-like operating systems, such as GNU/Linux, MacOS and others.
+
+thread_helper.c
+~~~~~~~~~~~~~~~
+
+This file contains the implementation of the functions declared in
+thread_helper.h, again distinguishing between operating systems.
+
+Credits
+-------
+
+This repository was created by the Operating Systems and Middleware Group at
+Hasso Plattner Institute, University of Potsdam, to help teach operating system
+behaviour and internals.
+
+For feedback and more information, contact bs@hpi.de

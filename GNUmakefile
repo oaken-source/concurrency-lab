@@ -1,15 +1,12 @@
 
-CFLAGS ?= -Wall -Wextra -O0 -g
-CFLAGS += -pthread
+# this Makefile is used by GNU make when compiling on Linux and MacOS
 
 BIN = unguarded turns flags peterson dekker bakery test_and_set semaphore custom
 SRC = concurrency.c thread_helper.c
 
-.PHONY: all clean
-all: $(BIN)
+CFLAGS = -pthread -Wall -Wextra -g
 
-clean:
-	$(RM) $(BIN)
+all: $(BIN)
 
 unguarded: $(SRC)
 	$(CC) $(CFLAGS) -DHAVE_UNGUARDED -o $@ $^
@@ -37,3 +34,6 @@ semaphore: $(SRC)
 
 custom: $(SRC)
 	$(CC) $(CFLAGS) -DHAVE_CUSTOM -o $@ $^
+
+clean:
+	$(RM) $(BIN)

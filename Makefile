@@ -1,13 +1,10 @@
 
-# this is picked up by nmake on windows
+# this Makefile is used by nmake when compiling on windows
 
 BIN = unguarded.exe turns.exe flags.exe peterson.exe dekker.exe bakery.exe test_and_set.exe semaphore.exe custom.exe
 SRC = concurrency.c thread_helper.c
 
 all: $(BIN)
-
-clean: 
-	-del $(BIN)
 
 unguarded.exe: $(SRC)
 	cl.exe /DHAVE_UNGUARDED $** /Feunguarded.exe
@@ -35,3 +32,6 @@ semaphore.exe: $(SRC)
 
 custom.exe: $(SRC)
 	cl.exe /DHAVE_CUSTOM $** /Fecustom.exe
+
+clean:
+	-del $(BIN)
